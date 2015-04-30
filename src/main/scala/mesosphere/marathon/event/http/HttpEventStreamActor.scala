@@ -1,8 +1,7 @@
 package mesosphere.marathon.event.http
 
-import akka.actor.Actor
+import akka.actor.{ PoisonPill, ActorRef, Props, Actor }
 import akka.event.EventStream
-import mesosphere.marathon.api.v2.json.Formats._
 import mesosphere.marathon.event._
 import mesosphere.marathon.event.http.HttpEventStreamActor._
 import org.apache.log4j.Logger
@@ -23,34 +22,30 @@ trait HttpEventStreamHandle {
   * @param eventStream the marathon event stream
   */
 class HttpEventStreamActor(eventStream: EventStream) extends Actor {
-  private[this] var clients = Vector.empty[HttpEventStreamHandle]
+  //map from handle to actor
+  private[http] var clients = Map.empty[HttpEventStreamHandle, ActorRef]
   private[this] val log = Logger.getLogger(getClass.getName)
 
-  override def preStart(): Unit = {
-    eventStream.subscribe(self, classOf[MarathonEvent])
-  }
-
   override def receive: Receive = {
-    case event: MarathonEvent                            => broadcastEvent(event)
     case HttpEventStreamConnectionOpen(handle)           => addHandler(handle)
     case HttpEventStreamConnectionClosed(handle)         => removeHandler(handle)
     case HttpEventStreamIncomingMessage(handle, message) => sendReply(handle, message)
   }
 
-  def broadcastEvent(event: MarathonEvent): Unit = {
-    clients.foreach(_.sendMessage(Json.stringify(eventToJson(event))))
-  }
-
   def addHandler(handle: HttpEventStreamHandle): Unit = {
     log.info(s"Add EventStream Handle as event listener: $handle")
-    clients = handle +: clients
+    val actor = context.actorOf(Props(classOf[HttpEventStreamHandleActor], handle, eventStream))
+    clients += handle -> actor
     eventStream.publish(EventStreamAttached(handle.remoteAddress))
   }
 
   def removeHandler(handle: HttpEventStreamHandle): Unit = {
     log.info(s"Remove EventStream Handle as event listener: $handle")
-    clients = clients.filter(_ != handle)
-    eventStream.publish(EventStreamDetached(handle.remoteAddress))
+    clients.get(handle).foreach { actor =>
+      clients -= handle
+      actor ! PoisonPill
+      eventStream.publish(EventStreamDetached(handle.remoteAddress))
+    }
   }
 
   def sendReply(handle: HttpEventStreamHandle, message: String): Unit = {

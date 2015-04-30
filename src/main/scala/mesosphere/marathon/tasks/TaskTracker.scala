@@ -27,7 +27,7 @@ class TaskTracker @Inject() (
   import mesosphere.util.BackToTheFuture.futureToFuture
   import mesosphere.util.ThreadPoolContext.context
 
-  implicit val timeout = config.zkFutureTimeout
+  private[this] implicit val timeout = config.zkFutureTimeout
 
   private[this] val log = Logger.getLogger(getClass.getName)
 

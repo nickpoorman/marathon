@@ -3,12 +3,12 @@
 Attach to the marathon event stream.
 There are 2 options to access this stream: either using plain HTTP with Server Side Events or by using WebSockets. 
 
-### Server Side Events
+### Server Sent Events
 
 To use this endpoint, the client has to accept the text/event-stream content type.
 Please note: a request to this endpoint will not be closed by the server.
 If an event happens on the server side, this event will be propagated to the client immediately.
-See [Server Side Events](http://www.w3schools.com/html/html5_serversentevents.asp) for a more detailed explanation.
+See [Server Sent Events](http://www.w3schools.com/html/html5_serversentevents.asp) for a more detailed explanation.
 
 **Request:**
 
@@ -33,7 +33,7 @@ Server: Jetty(8.1.15.v20140411)
 
 ```
 
-If an event happens on the server side, it is send as plain json prepended with the mandatory `data:` field.
+If an event happens on the server side, it is sent as plain json prepended with the mandatory `data:` field.
 
 **Response:**
 ```
@@ -76,7 +76,7 @@ Sec-WebSocket-Accept: rLHCkw/SKsO9GAH/ZSFhBATDKrU=
 
 ```
 
-If an event happens on the server side, it is send as plain json.
+If an event happens on the server side, it is sent as plain json.
 
 **Response:**
 ```
